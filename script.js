@@ -70,7 +70,7 @@ function place(boards, win_map, i, player) {
         return [new_, new_win_map, null];
     }
 
-    if (sub.every(e => Boolean(e))) { // Drawn board
+    if (sub.every(e => Boolean(e)) && !new_win_map[board]) { // Drawn board
         new_win_map[board] = _;
         // if (!boards.some(sub_ => !sub_.every(e => Boolean(e)))) {
         if (!new_win_map.some(e => !e)) {
