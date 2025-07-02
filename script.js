@@ -52,7 +52,8 @@ function place(boards, win_map, i, player) {
     if (!broken) {
         if (sub.every(e => Boolean(e))) { // Drawn board
             new_win_map[board] = _;
-            if (!boards.some(sub_ => !sub_.every(e => Boolean(e)))) {
+            // if (!boards.some(sub_ => !sub_.every(e => Boolean(e)))) {
+            if (!new_win_map.some(e => !e)) {
                 for (let [a, b, c] of win_patterns) {
                     if (
                         0 < new_win_map[a] &&
@@ -71,7 +72,8 @@ function place(boards, win_map, i, player) {
 
     if (sub.every(e => Boolean(e))) { // Drawn board
         new_win_map[board] = _;
-        if (!boards.some(sub_ => !sub_.every(e => Boolean(e)))) {
+        // if (!boards.some(sub_ => !sub_.every(e => Boolean(e)))) {
+        if (!new_win_map.some(e => !e)) {
             for (let [a, b, c] of win_patterns) {
                 if (
                     0 < new_win_map[a] &&
