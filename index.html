@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Super Tic-Tac-Toe</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <script src="script.js" defer></script>
+    <button id="up" onclick="MAX_DEPTH += 1; document.getElementById('diff').innerText = `Current AI difficulty: ${MAX_DEPTH} (note: it is highly recommended to stay between 2 and 7.)`;">+</button>
+    <p id="diff">Current AI difficulty: 6 (note: it is highly recommended to stay between 2 and 7.)</p>
+    <button id="down" onclick="MAX_DEPTH -= 1; document.getElementById('diff').innerText = `Current AI difficulty: ${MAX_DEPTH} (note: it is highly recommended to stay between 2 and 7.)`;">-</button>
+</body>
+</html>
