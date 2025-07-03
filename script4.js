@@ -24,16 +24,15 @@ let tile_powers = [
 ];
 
 let empty_free_advantages = {
-    0: 0,
-    1: 1,
-    2: 6,
-    3: 7,
-    4: 7,
-    5: 6,
-    6: 5,
-    7: 3,
-    8: 2,
-    9: 1,
+    1: 0,
+    2: 4,
+    3: 3,
+    4: 3,
+    5: 2,
+    6: 2,
+    7: 2,
+    8: 1,
+    9: 1
 }
 
 function count(array, value) {
@@ -160,66 +159,118 @@ function analyze(boards, win_map, intended_board, player, raw) {
     let advantage = 0;
     let free_move = win_map[intended_board] != 0;
 
-    let [XC, OC, XS, OS] = has_chance(win_map);
-    if (XC && (free_move || XS.includes(intended_board)) && player == X) advantage += 100;
-    else if (OC && (free_move || OS.includes(intended_board)) && player == O) advantage -= 100;
-    if (raw) console.log(advantage);
-    // Cannot be both as player-exclusive.
-
-    win_map.forEach((board, i) => {
-        if (board !== 0) {
-            switch (board) {
-                case X:
-                    advantage += tile_powers[i] * 2.5;
-                    break;
-                case O:
-                    advantage -= tile_powers[i] * 2.5;
-                    break;
-                case _: break;
+    // Has a win in one move?
+    let [xwp, owp, xws, ows] = has_chance(win_map);
+    if (free_move) {
+        if (player == X) {
+            if (xwp) {
+                for (let square of xws) {
+                    if (has_chance(boards[square])[0]) return 100;
+                    advantage += 20;
+                }
             }
+
+            advantage -= 10 * ows.length;
+        } else {
+            if (owp) {
+                for (let square of ows) {
+                    if (has_chance(boards[square])[1]) return -100;
+                    advantage -= 20;
+                }
+            }
+
+            advantage += 10 * xws.length;
         }
-    });
+    } else {
+        if (player == X) {
+            if (xws.includes(intended_board) && has_chance(boards[intended_board])[0]) return 100;
+            if (xws.includes(intended_board)) advantage += 20;
+            advantage -= 10 * ows.length;
+        } else {
+            if (ows.includes(intended_board) && has_chance(boards[intended_board])[1]) return -100;
+            if (ows.includes(intended_board)) advantage -= 20;
+            advantage += 10 * xws.length;
+        }
+    }
+
+    if (raw) console.log(advantage);
 
     if (free_move) {
-        win_map.forEach((board, i) => {
-            if (board == 0) {
-                let [xc, oc, xs, os] = has_chance(boards[i]);
-                if (xc && player == X) advantage += tile_powers[i] * 0.4;
-                else if (oc && player == O) advantage -= tile_powers[i] * 0.4;
+        for (let mb of win_map) {
+            if (mb == 0) {
+                let [xmc, omc, xms, oms] = has_chance(boards[mb]);
+                if (player == X) {
+                    for (let win of xms) advantage += 3 * tile_powers[mb];
+                    for (let win of oms) advantage -= 1.5 * tile_powers[mb];
+                }
 
-                if (player == O && xc) advantage += tile_powers[i] * 0.5;
-                else if (player == X && oc) advantage -= tile_powers[i] * 0.5;
+                else if (player == O) {
+                    for (let win of oms) advantage -= 3 * tile_powers[mb];
+                    for (let win of xms) advantage += 1.5 * tile_powers[mb];
+                }
             }
-        });
+        }
     } else {
-        let [xc, oc, xs, os] = has_chance(boards[intended_board]);
-        if (xc && player == X) advantage += tile_powers[intended_board] * 2;
-        else if (oc && player == O) advantage -= tile_powers[intended_board] * 2;
+        let mb = intended_board;
+        let [xmc, omc, xms, oms] = has_chance(boards[mb]);
+        if (player == X) {
+            for (let win of xms) advantage += 3 * tile_powers[mb];
+            for (let win of oms) advantage -= 1.5 * tile_powers[mb];
+        }
+
+        else if (player == O) {
+            for (let win of oms) advantage -= 3 * tile_powers[mb];
+            for (let win of xms) advantage += 1.5 * tile_powers[mb];
+        }
     }
+
     if (raw) console.log(advantage);
 
     if (free_move) {
         if (player == X) advantage += empty_free_advantages[count(win_map, 0)];
         else if (player == O) advantage -= empty_free_advantages[count(win_map, 0)];
     }
-    else {
-        if (player == X) advantage += tile_powers[intended_board] * 0.4;
-        else if (player == O) advantage -= tile_powers[intended_board] * 0.4;       
-    }
-    if (raw) console.log(advantage);
-    
-    let possible = find_possible_moves(boards, intended_board);
-    let restricted = 0;
-    for (let option of possible) {
-        if (win_map[option % 9] != 0) {
-            // if (player == X) advantage -= 0.1;
-            restricted++;
-        }
-    }
+
     if (raw) console.log(advantage);
 
-    if (player == X) advantage -= restricted / possible.length * empty_free_advantages[count(win_map, 0)]
-    else if (player == O) advantage += restricted / possible.length * empty_free_advantages[count(win_map, 0)]
+    boards.forEach((board, i) => {
+        if (win_map[i] == 0) {
+            let [xc, oc, xp, op] = has_chance(board);
+            if (player == X) {
+                advantage += tile_powers[i] * xp.length / 4;
+                advantage -= tile_powers[i] * op.length / 8;
+            }
+            else if (player == O) {
+                advantage -= tile_powers[i] * op.length / 4;
+                advantage += tile_powers[i] * xp.length / 8;
+            }
+        } else {
+            if (win_map[i] == X) advantage += 4 * tile_powers[i];
+            else if (win_map[i] == O) advantage -= 4 * tile_powers[i];
+        }
+    });
+
+    if (raw) console.log(advantage);
+
+    let possible = find_possible_moves(boards, intended_board);
+    let t = possible.length;
+    let n = 0;
+    for (let option of possible) {
+        if (win_map[option % 9] != 0) n++;
+    }
+
+    if (raw) console.log(advantage);
+
+    if (player == X) advantage -= (n * empty_free_advantages[count(win_map, 0)]) / (4 * t);
+    else if (player == O) advantage += (n * empty_free_advantages[count(win_map, 0)]) / (4 * t);
+
+    if (raw) console.log(advantage);
+
+    if (!free_move) {
+        if (player == X) advantage += tile_powers[intended_board] * 0.2;
+        else if (player == O) advantage -= tile_powers[intended_board] * 0.2;
+    }
+
     if (raw) console.log(advantage);
 
     return advantage;
@@ -246,84 +297,80 @@ function find_possible_moves(boards, intended_board) {
 }
 
 let MAX_DEPTH = 6;
-let CHECK = 5;
 
-function recurse(boards, win_map, player, intended_board, depth) {
+function recurse(boards, win_map, player, intended_board, depth, alpha, beta) {
     let options = find_possible_moves(boards, intended_board);
     if (depth == MAX_DEPTH || !options.length) {
-        return [null, analyze(boards, win_map, intended_board, _ - player)];
+        return [null, analyze(boards, win_map, intended_board, player)];
     }
 
-    let new_values = {};
+    let best_move;
 
-    let best_curr;
-
-    // let to_search = options
-    //     .map(option => ({ 
-    //         value: option, score: (value)
-    //     })) // Pair each with its score
-    //     .sort((a, b) => b.score - a.score)                 // Sort descending by score
-    //     .slice(0, n)                                       // Take top n
-    //     .map(entry => entry.value);     
-
-    let scores = {};
-    for (let option of options) {
+    let ordered = options.map(option => {
         let [new_boards, new_win_map, new_winner] = place(boards, win_map, option, player);
-        scores[option] = analyze(new_boards, new_win_map, option % 9, player);
-    }
-
-    
-    let to_check = Object.entries(scores)
-        .sort((a, b) => {
-            if (player == X) return b[1] - a[1];
-            else return a[1] - b[1];
-        })
-        .slice(0, CHECK)
-        .map(pair => pair[0]);
-    
-    if (depth == 1) console.log(to_check, scores);
-    for (let option of to_check) {
-        let [new_boards, new_win_map, new_winner] = place(boards, win_map, option, player);
-
-        // let curr = analyze(new_boards, new_win_map, option % 9, _ - player);
-        // if (
-            // player == O && curr > Math.min(Object.values(new_values).length ? Object.values(new_values) : [100])
-            // || player == X && curr < Math.max(Object.values(new_values).length ? Object.values(new_values) : [-100])
-        // ) {
-        // if (best_curr !== undefined && (player == O && curr > best_curr || player == X && curr < best_curr)) {
-            // console.log(player, curr, new_values);
-            // console.log(curr, new_values, Math.min(Object.values(new_values).length ? Object.values(new_values) : [100]));
-            // continue;
-        // }
-
-        if (new_winner) {
-            new_values[option] = new_winner == X ? 100 - depth : new_winner == O ? -100 + depth : 0;
-            // return []
-            if (new_winner == player) return [option, new_values[option]];
-        } else {
-            let [__, value] = recurse(new_boards, new_win_map.slice(), _ - player, option % 9, depth + 1);
-            // console.log(__, value, depth);
-            new_values[option] = (scores[option] + 4 * (value || __)) / 5;
-            // if (best_curr == undefined || player == X && value > best_curr || player == O && value < best_curr) {
-            //     best_curr = value;
-            // }
-        }
-    }
-
-    let keys = Object.keys(new_values);
-    let best = keys.reduce((a, b) => {
-        if (player == X) {
-            if (new_values[a] > new_values[b] || (new_values[a] == new_values[b] && Math.random() <= 0.5)) return a;
-            return b;
-        } else if (player == O) {
-            if (new_values[a] < new_values[b] || (new_values[a] == new_values[b] && Math.random() <= 0.5)) return a;
-            return b;
-        }
+        let score = analyze(new_boards, new_win_map, option % 9, player);
+        return { option, score };
     });
 
-    if (depth == 1) console.log(new_values);
+    ordered.sort((a, b) => player == X ? b.score - a.score : a.score - b.score);
+    ordered = ordered.map(e => e.option);
 
-    return [best, new_values[best]];
+    if (player == X) {
+        let max_eval = -Infinity;
+
+        for (let option of ordered) {
+            let [new_boards, new_win_map, new_winner] = place(boards, win_map, option, player);
+            
+            let eval;
+            if (new_winner) {
+                eval = new_winner == X ? 100 - depth : new_winner == O ? -100 + depth : 0;
+            } else {
+                let [__, value] = recurse(new_boards, new_win_map, _ - player, option % 9, depth + 1, alpha, beta);
+                eval = (value || (value == 0)) ? value : __;
+            }
+
+            if (eval > max_eval) {
+                max_eval = eval;
+                best_move = option;
+            }
+
+            alpha = Math.max(alpha, eval);
+            if (beta <= alpha) {
+                console.log("pruned");
+                break;
+            }
+        }
+
+        return [best_move, max_eval];
+    }
+
+    else {
+        let min_eval = Infinity;
+        for (let option of ordered) {
+            let [new_boards, new_win_map, new_winner] = place(boards, win_map, option, player);
+            
+            let eval;
+            if (new_winner) {
+                eval = new_winner == X ? 100 - depth : new_winner == O ? -100 + depth : 0;
+            } else {
+                let [__, value] = recurse(new_boards, new_win_map, _ - player, option % 9, depth + 1, alpha, beta);
+                eval = (value || (value == 0)) ? value : __;
+            }
+
+            if (eval < min_eval) {
+                min_eval = eval;
+                best_move = option;
+            }
+
+            beta = Math.min(beta, eval);
+            if (beta <= alpha) {
+                console.log("pruned");
+                break;
+            }
+        }
+
+        return [best_move, min_eval];
+    }
 }
 
 function create_boards() {
