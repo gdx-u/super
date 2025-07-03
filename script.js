@@ -177,6 +177,9 @@ function analyze(boards, win_map, intended_board, player) {
     if (win_map[intended_board] != 0) {
         if (player == X) advantage += 6 * (9 - count(win_map, 0)) / 9;
         else if (player == O) advantage -= 6 * (9 - count(win_map, 0)) / 9;
+    } else {
+        if (player == X) advantage += tile_powers[intended_board];
+        else if (player == O) advantage -= tile_powers[intended_board];
     }
 
     if (!boards.some(sub_ => !sub_.every(e => Boolean(e)))) {
