@@ -18,10 +18,23 @@ let win_patterns = [
 ];
 
 let tile_powers = [
-    3, 1, 3,
-    1, 5, 1,
-    3, 1, 3
+    3, 2, 3,
+    2, 4, 2,
+    3, 2, 3
 ];
+
+let empty_free_advantages = {
+    0: 0,
+    1: 1,
+    2: 6,
+    3: 7,
+    4: 7,
+    5: 6,
+    6: 5,
+    7: 3,
+    8: 2,
+    9: 1,
+}
 
 function count(array, value) {
     return array.filter(e => e == value).length;
@@ -103,94 +116,113 @@ function place(boards, win_map, i, player) {
 
 function has_chance(board) {
     let X_chance = false;
+    let X_tiles = [];
     let O_chance = false;
+    let O_tiles = [];
 
     for (let i = 0; i < 9; i++) {
         if (board[i] == 0) {
-            if (!X_chance) {
-                board[i] = X;
-                for (let [a, b, c] of win_patterns) {
-                    if (
-                        board[a] == board[b] &&
-                        board[b] == board[c] &&
-                        board[c] == X
-                    ) {
-                        X_chance = true;
-                        break;
-                    }
+            board[i] = X;
+            for (let [a, b, c] of win_patterns) {
+                if (
+                    board[a] == board[b] &&
+                    board[b] == board[c] &&
+                    board[c] == X
+                ) {
+                    X_chance = true;
+                    X_tiles.push(i)
+                    break;
                 }
-                board[i] = 0;
             }
+            board[i] = 0;
 
-            if (!O_chance) {
-                board[i] = O;
-                for (let [a, b, c] of win_patterns) {
-                    if (
-                        board[a] == board[b] &&
-                        board[b] == board[c] &&
-                        board[c] == O
-                    ) {
-                        O_chance = true;
-                        break;
-                    }
+            board[i] = O;
+            for (let [a, b, c] of win_patterns) {
+                if (
+                    board[a] == board[b] &&
+                    board[b] == board[c] &&
+                    board[c] == O
+                ) {
+                    O_chance = true;
+                    O_tiles.push(i);
+                    break;
                 }
-                board[i] = 0;
             }
+            board[i] = 0;
         }
     }
 
-    return [X_chance, O_chance];
+    return [X_chance, O_chance, X_tiles, O_tiles];
 }
 
-function analyze(boards, win_map, intended_board, player) {
+function analyze(boards, win_map, intended_board, player, raw) {
+    raw = raw || false;
     let advantage = 0;
+    let free_move = win_map[intended_board] != 0;
+
+    let [XC, OC, XS, OS] = has_chance(win_map);
+    if (XC && (free_move || XS.includes(intended_board)) && player == X) advantage += 100;
+    else if (OC && (free_move || OS.includes(intended_board)) && player == O) advantage -= 100;
+    if (raw) console.log(advantage);
+    // Cannot be both as player-exclusive.
 
     win_map.forEach((board, i) => {
-        advantage += (board == X ? 5 : board == O ? -5 : 0) * tile_powers[i] ;
-    });
-
-    boards.forEach((board, i) => {
-        if (win_map[i]) return;
-        let Xs = count(board, X);
-        let Os = count(board, O);
-        advantage += Xs > Os ? 0.3 : Xs < Os ? -0.3 : 0;
-
-        let [Xc, Oc] = has_chance(board);
-
-        advantage += Xc ? 0.8 * tile_powers[i] : 0;
-        advantage -= Oc ? 0.8 * tile_powers[i] : 0;
-
-        board.forEach((piece, j) => {
-            if (piece == X) advantage += tile_powers[j] * 0.08 * tile_powers[i];
-            else if (piece == O) advantage -= tile_powers[j] * 0.08 * tile_powers[i];
-        });
-    });
-
-    let [XC, OC] = has_chance(win_map);
-    advantage += XC ? 5 : 0;
-    advantage -= OC ? 5 : 0;
-
-    if (win_map[intended_board] != 0) {
-        if (player == X) advantage += 6 * (9 - count(win_map, 0)) / 9;
-        else if (player == O) advantage -= 6 * (9 - count(win_map, 0)) / 9;
-    } else {
-        if (player == X) advantage += tile_powers[intended_board];
-        else if (player == O) advantage -= tile_powers[intended_board];
-    }
-
-    if (!boards.some(sub_ => !sub_.every(e => Boolean(e)))) {
-        for (let [a, b, c] of win_patterns) {
-            if (
-                0 < win_map[a] &&
-                win_map[a] == win_map[b] &&
-                win_map[b] == win_map[c] &&
-                win_map[c] < _
-            ) return win_map[a] == X ? 100 : -100;
+        if (board !== 0) {
+            switch (board) {
+                case X:
+                    advantage += tile_powers[i] * 2.5;
+                    break;
+                case O:
+                    advantage -= tile_powers[i] * 2.5;
+                    break;
+                case _: break;
+            }
+        } else {
+            let [xc, oc, xs, os] = has_chance(boards[i]);
+            if (player == O && xc) advantage += tile_powers[i] * 3;
+            if (player == X && oc) advantage -= tile_powers[i] * 3;
         }
+    });
+    if (raw) console.log(advantage);
 
-        return 0;
-
+    if (free_move) {
+        win_map.forEach((board, i) => {
+            if (board == 0) {
+                let [xc, oc, xs, os] = has_chance(boards[i]);
+                if (xc && player == X) advantage += tile_powers[i] * 2;
+                else if (oc && player == O) advantage -= tile_powers[i] * 2;
+            }
+        });
+    } else {
+        let [xc, oc, xs, os] = has_chance(boards[intended_board]);
+        if (xc && player == X) advantage += tile_powers[intended_board] * 2;
+        else if (oc && player == O) advantage -= tile_powers[intended_board] * 2;
     }
+    if (raw) console.log(advantage);
+
+    if (free_move) {
+        if (player == X) advantage += empty_free_advantages[count(win_map, 0)];
+        else if (player == O) advantage -= empty_free_advantages[count(win_map, 0)];
+    }
+    else {
+        if (player == X) advantage += tile_powers[intended_board] * 0.4;
+        else if (player == O) advantage -= tile_powers[intended_board] * 0.4;       
+    }
+    if (raw) console.log(advantage);
+    
+    let possible = find_possible_moves(boards, intended_board);
+    let restricted = 0;
+    for (let option of possible) {
+        if (win_map[option % 9] != 0) {
+            // if (player == X) advantage -= 0.1;
+            restricted++;
+        }
+    }
+    if (raw) console.log(advantage);
+
+    if (player == X) advantage -= restricted / possible.length * empty_free_advantages[count(win_map, 0)]
+    else if (player == O) advantage += restricted / possible.length * empty_free_advantages[count(win_map, 0)]
+    if (raw) console.log(advantage);
 
     return advantage;
 }
@@ -215,6 +247,8 @@ function find_possible_moves(boards, intended_board) {
     return out;
 }
 
+// WHY THE FUCK DOES THIS NOT WORK
+
 let MAX_DEPTH = 6;
 
 function recurse(boards, win_map, player, intended_board, depth) {
@@ -230,16 +264,16 @@ function recurse(boards, win_map, player, intended_board, depth) {
     for (let option of options) {
         let [new_boards, new_win_map, new_winner] = place(boards, win_map, option, player);
 
-        let curr = analyze(new_boards, new_win_map, option % 9, player);
+        // let curr = analyze(new_boards, new_win_map, option % 9, _ - player);
         // if (
             // player == O && curr > Math.min(Object.values(new_values).length ? Object.values(new_values) : [100])
             // || player == X && curr < Math.max(Object.values(new_values).length ? Object.values(new_values) : [-100])
         // ) {
-        if (best_curr !== undefined && (player == O && curr > best_curr || player == X && curr < best_curr)) {
+        // if (best_curr !== undefined && (player == O && curr > best_curr || player == X && curr < best_curr)) {
             // console.log(player, curr, new_values);
             // console.log(curr, new_values, Math.min(Object.values(new_values).length ? Object.values(new_values) : [100]));
-            continue;
-        }
+            // continue;
+        // }
 
         if (new_winner) {
             new_values[option] = new_winner == X ? 100 - depth : new_winner == O ? -100 + depth : 0;
@@ -247,22 +281,24 @@ function recurse(boards, win_map, player, intended_board, depth) {
             let [__, value] = recurse(new_boards, new_win_map.slice(), _ - player, option % 9, depth + 1);
             // console.log(__, value, depth);
             new_values[option] = value || __;
-            if (best_curr == undefined || player == X && value > best_curr || player == O && value < best_curr) {
-                best_curr = value;
-            }
+            // if (best_curr == undefined || player == X && value > best_curr || player == O && value < best_curr) {
+            //     best_curr = value;
+            // }
         }
     }
 
     let keys = Object.keys(new_values);
     let best = keys.reduce((a, b) => {
         if (player == X) {
-            if (new_values[a] > new_values[b]) return a;
+            if (new_values[a] > new_values[b] || (new_values[a] == new_values[b] && Math.random() <= 0.5)) return a;
             return b;
         } else if (player == O) {
-            if (new_values[a] < new_values[b]) return a;
+            if (new_values[a] < new_values[b] || (new_values[a] == new_values[b] && Math.random() <= 0.5)) return a;
             return b;
         }
     });
+
+    if (depth == 1) console.log(new_values);
 
     return [best, new_values[best]];
 }

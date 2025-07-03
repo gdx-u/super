@@ -1,0 +1,12 @@
+--> HIGHEST IMPORTANCE
+
+- Can win the game in one move
+
+- How many boards won
+
+    - Free move: how good each board is & how late in the game
+    - No free move: how good the board you're on is
+
+- How many moves you have give the opponent a free move
+
+--> LOWEST IMPORTANCE
