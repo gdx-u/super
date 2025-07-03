@@ -224,7 +224,7 @@ let MAX_DEPTH = 6;
 function recurse(boards, win_map, player, intended_board, depth) {
     let options = find_possible_moves(boards, intended_board);
     if (depth == MAX_DEPTH || !options.length) {
-        return [null, analyze(boards, win_map, intended_board, _ - player)];
+        return [null, analyze(boards, win_map, intended_board, player)];
     }
 
     let new_values = {};
