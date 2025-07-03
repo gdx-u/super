@@ -145,12 +145,7 @@ function analyze(boards, win_map, intended_board, player) {
     let advantage = 0;
 
     win_map.forEach((board, i) => {
-        advantage += board == X ? 20 : board == O ? -20 : 0;
-        if (board == X) {
-            advantage += 2 * tile_powers[i];
-        } else if (board == O) {
-            advantage -= 2 * tile_powers[i];
-        }
+        advantage += (board == X ? 5 : board == O ? -5 : 0) * tile_powers[i] ;
     });
 
     boards.forEach((board, i) => {
@@ -171,8 +166,8 @@ function analyze(boards, win_map, intended_board, player) {
     });
 
     let [XC, OC] = has_chance(win_map);
-    advantage += XC ? 10 : 0;
-    advantage -= OC ? 10 : 0;
+    advantage += XC ? 5 : 0;
+    advantage -= OC ? 5 : 0;
 
     if (win_map[intended_board] != 0) {
         if (player == X) advantage += 6 * (9 - count(win_map, 0)) / 9;
