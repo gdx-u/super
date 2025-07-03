@@ -19,7 +19,7 @@ let win_patterns = [
 
 let tile_powers = [
     3, 2, 3,
-    2, 4, 2,
+    2, 5, 2,
     3, 2, 3
 ];
 
@@ -177,20 +177,18 @@ function analyze(boards, win_map, intended_board, player, raw) {
                     break;
                 case _: break;
             }
-        } else {
-            let [xc, oc, xs, os] = has_chance(boards[i]);
-            if (player == O && xc) advantage += tile_powers[i] * 3;
-            if (player == X && oc) advantage -= tile_powers[i] * 3;
         }
     });
-    if (raw) console.log(advantage);
 
     if (free_move) {
         win_map.forEach((board, i) => {
             if (board == 0) {
                 let [xc, oc, xs, os] = has_chance(boards[i]);
-                if (xc && player == X) advantage += tile_powers[i] * 2;
-                else if (oc && player == O) advantage -= tile_powers[i] * 2;
+                if (xc && player == X) advantage += tile_powers[i] * 0.4;
+                else if (oc && player == O) advantage -= tile_powers[i] * 0.4;
+
+                if (player == O && xc) advantage += tile_powers[i] * 0.5;
+                else if (player == X && oc) advantage -= tile_powers[i] * 0.5;
             }
         });
     } else {
