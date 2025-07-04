@@ -159,6 +159,18 @@ function analyze(boards, win_map, intended_board, player, raw) {
     let advantage = 0;
     let free_move = win_map[intended_board] != 0;
 
+    // Has won?
+    for (let [a, b, c] of win_patterns) {
+        if (
+            win_map[a] == win_map[b] &&
+            win_map[b] == win_map[c] &&
+            win_map[c] == O || win_map[c] == X
+        ) {
+            if (win_map[a] == X) return 100;
+            return -100;
+        }
+    }
+
     // Has a win in one move?
     let [xwp, owp, xws, ows] = has_chance(win_map);
     if (free_move) {
