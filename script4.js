@@ -18,9 +18,9 @@ let win_patterns = [
 ];
 
 let tile_powers = [
-    3, 2, 3,
-    2, 5, 2,
-    3, 2, 3
+    2.5, 2, 2.5,
+    2,   3,   2,
+    2.5, 2, 2.5
 ];
 
 let empty_free_advantages = {
@@ -182,7 +182,7 @@ function analyze(boards, win_map, intended_board, player, raw) {
                 }
             }
 
-            advantage -= 10 * ows.length;
+            advantage -= 40 * ows.length;
         } else {
             if (owp) {
                 for (let square of ows) {
@@ -191,7 +191,7 @@ function analyze(boards, win_map, intended_board, player, raw) {
                 }
             }
 
-            advantage += 10 * xws.length;
+            advantage += 40 * xws.length;
         }
     } else {
         if (player == X) {
@@ -212,13 +212,13 @@ function analyze(boards, win_map, intended_board, player, raw) {
             if (mb == 0) {
                 let [xmc, omc, xms, oms] = has_chance(boards[i]);
                 if (player == X) {
-                    for (let win of xms) advantage += 3 * tile_powers[i];
-                    for (let win of oms) advantage -= 1.5 * tile_powers[i];
+                    for (let win of xms) advantage += 1.5 * tile_powers[i];
+                    for (let win of oms) advantage -= 3 * tile_powers[i];
                 }
 
                 else if (player == O) {
-                    for (let win of oms) advantage -= 3 * tile_powers[i];
-                    for (let win of xms) advantage += 1.5 * tile_powers[i];
+                    for (let win of oms) advantage -= 1.5 * tile_powers[i];
+                    for (let win of xms) advantage += 3 * tile_powers[i];
                 }
             }
         });
@@ -226,21 +226,21 @@ function analyze(boards, win_map, intended_board, player, raw) {
         let mb = intended_board;
         let [xmc, omc, xms, oms] = has_chance(boards[mb]);
         if (player == X) {
-            for (let win of xms) advantage += 3 * tile_powers[mb];
-            for (let win of oms) advantage -= 1.5 * tile_powers[mb];
+            for (let win of xms) advantage += 1.5 * tile_powers[mb];
+            for (let win of oms) advantage -= 3 * tile_powers[mb];
         }
 
         else if (player == O) {
-            for (let win of oms) advantage -= 3 * tile_powers[mb];
-            for (let win of xms) advantage += 1.5 * tile_powers[mb];
+            for (let win of oms) advantage -= 1.5 * tile_powers[mb];
+            for (let win of xms) advantage += 3 * tile_powers[mb];
         }
     }
 
     if (raw) console.log(advantage);
 
     if (free_move) {
-        if (player == X) advantage += empty_free_advantages[count(win_map, 0)];
-        else if (player == O) advantage -= empty_free_advantages[count(win_map, 0)];
+        if (player == X) advantage += 2 * empty_free_advantages[count(win_map, 0)];
+        else if (player == O) advantage -= 2 * empty_free_advantages[count(win_map, 0)];
     }
 
     if (raw) console.log(advantage);
@@ -249,16 +249,16 @@ function analyze(boards, win_map, intended_board, player, raw) {
         if (win_map[i] == 0) {
             let [xc, oc, xp, op] = has_chance(board);
             if (player == X) {
-                advantage += tile_powers[i] * xp.length / 4;
-                advantage -= tile_powers[i] * op.length / 8;
+                advantage += tile_powers[i] * xp.length / 6;
+                advantage -= tile_powers[i] * op.length / 3;
             }
             else if (player == O) {
-                advantage -= tile_powers[i] * op.length / 4;
-                advantage += tile_powers[i] * xp.length / 8;
+                advantage -= tile_powers[i] * op.length / 6;
+                advantage += tile_powers[i] * xp.length / 3;
             }
         } else {
-            if (win_map[i] == X) advantage += 4 * tile_powers[i];
-            else if (win_map[i] == O) advantage -= 4 * tile_powers[i];
+            if (win_map[i] == X) advantage += 8 * tile_powers[i];
+            else if (win_map[i] == O) advantage -= 8 * tile_powers[i];
         }
     });
 
@@ -267,14 +267,18 @@ function analyze(boards, win_map, intended_board, player, raw) {
     let possible = find_possible_moves(boards, intended_board);
     let t = possible.length;
     let n = 0;
+    let center = 0;
     for (let option of possible) {
-        if (win_map[option % 9] != 0) n++;
+        if (win_map[option % 9] != 0) {
+            n++;
+            if (option % 9 == 4) center += 1;
+        }
     }
 
     if (raw) console.log(advantage);
 
-    if (player == X) advantage -= (n * empty_free_advantages[count(win_map, 0)]) / (4 * t);
-    else if (player == O) advantage += (n * empty_free_advantages[count(win_map, 0)]) / (4 * t);
+    if (player == X) advantage -= ((n + center * 2) * empty_free_advantages[count(win_map, 0)]) / (1.8 * t);
+    else if (player == O) advantage += ((n + center * 2) * empty_free_advantages[count(win_map, 0)]) / (1.8 * t);
 
     if (raw) console.log(advantage);
 
@@ -312,77 +316,33 @@ let MAX_DEPTH = 6;
 
 function recurse(boards, win_map, player, intended_board, depth, alpha, beta) {
     let options = find_possible_moves(boards, intended_board);
-    if (depth == MAX_DEPTH || !options.length) {
+    if (depth == MAX_DEPTH || options.length == 0) {
         return [null, analyze(boards, win_map, intended_board, player)];
     }
-
+    alpha = alpha || -Math.Infinity;
+    beta = beta || Math.Infinity;
     let best_move;
-
-    let ordered = options.map(option => {
-        let [new_boards, new_win_map, new_winner] = place(boards, win_map, option, player);
-        let score = analyze(new_boards, new_win_map, option % 9, player);
-        return { option, score };
-    });
-
-    ordered.sort((a, b) => player == X ? b.score - a.score : a.score - b.score);
-    ordered = ordered.map(e => e.option);
-
-    if (player == X) {
-        let max_eval = -Infinity;
-
-        for (let option of ordered) {
-            let [new_boards, new_win_map, new_winner] = place(boards, win_map, option, player);
-            
-            let eval;
-            if (new_winner) {
-                eval = new_winner == X ? 100 - depth : new_winner == O ? -100 + depth : 0;
-            } else {
-                let [__, value] = recurse(new_boards, new_win_map, _ - player, option % 9, depth + 1, alpha, beta);
-                eval = (value || (value == 0)) ? value : __;
-            }
-
-            if (eval > max_eval) {
-                max_eval = eval;
-                best_move = option;
-            }
-
-            alpha = Math.max(alpha, eval);
-            if (beta <= alpha) {
-                console.log("pruned");
-                break;
-            }
+    let best_score = (player == X) ? -Infinity : Infinity;
+    for (let option of options) {
+        let [nb, nw, nwinner] = place(boards, win_map, option, player);
+        let score;
+        if (nwinner) {
+            score = (nwinner == X ? 100 : -100) + (player == X ? -depth : depth);
+        } else {
+            let [_, child_score] = recurse(nb, nw, player == X ? O : X, option % 9, depth + 1, alpha, beta);
+            score = child_score;
         }
-
-        return [best_move, max_eval];
+        if ((player == X && score > best_score) || (player == O && score < best_score)) {
+            best_score = score;
+            best_move = option;
+        }
+        if (player == X) alpha = Math.max(alpha, best_score);
+        else beta = Math.min(beta, best_score);
+        if (beta <= alpha) break;
     }
 
-    else {
-        let min_eval = Infinity;
-        for (let option of ordered) {
-            let [new_boards, new_win_map, new_winner] = place(boards, win_map, option, player);
-            
-            let eval;
-            if (new_winner) {
-                eval = new_winner == X ? 100 - depth : new_winner == O ? -100 + depth : 0;
-            } else {
-                let [__, value] = recurse(new_boards, new_win_map, _ - player, option % 9, depth + 1, alpha, beta);
-                eval = (value || (value == 0)) ? value : __;
-            }
-
-            if (eval < min_eval) {
-                min_eval = eval;
-                best_move = option;
-            }
-
-            beta = Math.min(beta, eval);
-            if (beta <= alpha) {
-                console.log("pruned");
-                break;
-            }
-        }
-
-        return [best_move, min_eval];
-    }
+    if (depth == 1) console.log(best_score);
+    return [best_move, best_score];
 }
 
 function create_boards() {
@@ -506,7 +466,10 @@ async function play(id) {
 
                 turn = O;
                 [ai_move, ai_analysis] = recurse(boards, win_map, O, intended_board, 1);
-                if (ai_move) {
+                
+                if (typeof(ai_move) == "object" && ai_move !== null) ai_move = ai_move[0];
+
+                if (typeof(ai_move) == 'number') {
                     intended_board = ai_move % 9;
                     [boards, win_map, winner] = place(boards, win_map, ai_move, O);
                     if (winner) {
