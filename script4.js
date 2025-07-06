@@ -164,7 +164,7 @@ function analyze(boards, win_map, intended_board, player, raw) {
         if (
             win_map[a] == win_map[b] &&
             win_map[b] == win_map[c] &&
-            win_map[c] == O || win_map[c] == X
+            (win_map[c] == O || win_map[c] == X)
         ) {
             if (win_map[a] == X) return 100;
             return -100;
@@ -208,20 +208,20 @@ function analyze(boards, win_map, intended_board, player, raw) {
     if (raw) console.log(advantage);
 
     if (free_move) {
-        for (let mb of win_map) {
+        win_map.forEach((mb, i) => {
             if (mb == 0) {
-                let [xmc, omc, xms, oms] = has_chance(boards[mb]);
+                let [xmc, omc, xms, oms] = has_chance(boards[i]);
                 if (player == X) {
-                    for (let win of xms) advantage += 3 * tile_powers[mb];
-                    for (let win of oms) advantage -= 1.5 * tile_powers[mb];
+                    for (let win of xms) advantage += 3 * tile_powers[i];
+                    for (let win of oms) advantage -= 1.5 * tile_powers[i];
                 }
 
                 else if (player == O) {
-                    for (let win of oms) advantage -= 3 * tile_powers[mb];
-                    for (let win of xms) advantage += 1.5 * tile_powers[mb];
+                    for (let win of oms) advantage -= 3 * tile_powers[i];
+                    for (let win of xms) advantage += 1.5 * tile_powers[i];
                 }
             }
-        }
+        });
     } else {
         let mb = intended_board;
         let [xmc, omc, xms, oms] = has_chance(boards[mb]);
