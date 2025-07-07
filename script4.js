@@ -182,7 +182,7 @@ function analyze(boards, win_map, intended_board, player, raw) {
                 }
             }
 
-            advantage -= 40 * ows.length;
+            advantage -= 20 * ows.length;
         } else {
             if (owp) {
                 for (let square of ows) {
@@ -191,17 +191,17 @@ function analyze(boards, win_map, intended_board, player, raw) {
                 }
             }
 
-            advantage += 40 * xws.length;
+            advantage += 20 * xws.length;
         }
     } else {
         if (player == X) {
             if (xws.includes(intended_board) && has_chance(boards[intended_board])[0]) return 100;
             if (xws.includes(intended_board)) advantage += 20;
-            advantage -= 40 * ows.length;
+            advantage -= 20 * ows.length;
         } else {
             if (ows.includes(intended_board) && has_chance(boards[intended_board])[1]) return -100;
             if (ows.includes(intended_board)) advantage -= 20;
-            advantage += 40 * xws.length;
+            advantage += 20 * xws.length;
         }
     }
 
@@ -212,12 +212,12 @@ function analyze(boards, win_map, intended_board, player, raw) {
             if (mb == 0) {
                 let [xmc, omc, xms, oms] = has_chance(boards[i]);
                 if (player == X) {
-                    for (let win of xms) advantage += 1.5 * tile_powers[i];
+                    for (let win of xms) advantage += 3 * tile_powers[i];
                     for (let win of oms) advantage -= 3 * tile_powers[i];
                 }
 
                 else if (player == O) {
-                    for (let win of oms) advantage -= 1.5 * tile_powers[i];
+                    for (let win of oms) advantage -= 3 * tile_powers[i];
                     for (let win of xms) advantage += 3 * tile_powers[i];
                 }
             }
@@ -226,12 +226,12 @@ function analyze(boards, win_map, intended_board, player, raw) {
         let mb = intended_board;
         let [xmc, omc, xms, oms] = has_chance(boards[mb]);
         if (player == X) {
-            for (let win of xms) advantage += 1.5 * tile_powers[mb];
+            for (let win of xms) advantage += 3 * tile_powers[mb];
             for (let win of oms) advantage -= 3 * tile_powers[mb];
         }
 
         else if (player == O) {
-            for (let win of oms) advantage -= 1.5 * tile_powers[mb];
+            for (let win of oms) advantage -= 3 * tile_powers[mb];
             for (let win of xms) advantage += 3 * tile_powers[mb];
         }
     }
@@ -249,11 +249,11 @@ function analyze(boards, win_map, intended_board, player, raw) {
         if (win_map[i] == 0) {
             let [xc, oc, xp, op] = has_chance(board);
             if (player == X) {
-                advantage += tile_powers[i] * xp.length / 6;
+                advantage += tile_powers[i] * xp.length / 3;
                 advantage -= tile_powers[i] * op.length / 3;
             }
             else if (player == O) {
-                advantage -= tile_powers[i] * op.length / 6;
+                advantage -= tile_powers[i] * op.length / 3;
                 advantage += tile_powers[i] * xp.length / 3;
             }
         } else {
@@ -338,7 +338,7 @@ function recurse(boards, win_map, player, intended_board, depth, alpha, beta) {
             let [_, child_score] = recurse(nb, nw, player == X ? O : X, option % 9, depth + 1, alpha, beta);
             score = child_score;
         }
-        
+
         if ((player == X && score > best_score) || (player == O && score < best_score)) {
             best_score = score;
             best_move = option;
